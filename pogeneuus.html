@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="et">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Puzzle Pages — 6 Questions</title>
+  <style>
+    :root{--bg:#000;--slot:#111;--accent:#0f62fe}
+    html,body{height:100%;margin:0}
+
+    /* Background layer */
+    .bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+    .bg-el{position:absolute;opacity:0.27;filter:grayscale(100%) contrast(120%) brightness(90%);transform-origin:center center;background-repeat:no-repeat;background-size:contain}
+    .bg-el.color{opacity:1;filter:none}
+
+    @keyframes float-slow{0%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-18px) rotate(12deg)}100%{transform:translateY(0) rotate(0deg)}}
+    @keyframes float-med{0%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-12px) rotate(-8deg)}100%{transform:translateY(0) rotate(0deg)}}
+    @keyframes float-fast{0%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-6px) rotate(6deg)}100%{transform:translateY(0) rotate(0deg)}}
+
+    body{
+      background:var(--bg);
+      color:#e6e6e6;
+      font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      box-sizing:border-box;
+      position:relative
+    }
+
+    .wrap{
+      width:100%;
+      max-width:100%;
+      display:flex;
+      gap:clamp(12px,1.2vw,20px);
+      flex-wrap:wrap;
+      justify-content:center;
+      position:relative;
+      z-index:2
+    }
+
+    .page{
+      width:clamp(420px,30vw,900px);
+      background:linear-gradient(180deg,#070707,#0b0b0b);
+      border-radius:clamp(10px,1.2vw,18px);
+      padding:clamp(18px,1.8vw,34px);
+      border:1px solid rgba(255,255,255,0.04);
+      box-sizing:border-box
+    }
+
+    .slot{
+      width:100%;
+      height:clamp(260px,18vw,520px);
+      border-radius:clamp(10px,1.2vw,18px);
+      background:linear-gradient(180deg,#0b0b0b,#050505);
+      box-shadow:0 10px 40px rgba(0,0,0,0.65);
+      padding:clamp(14px,1.4vw,26px);
+      box-sizing:border-box
+    }
+
+    .question{
+      font-size:clamp(20px,2.2vw,44px);
+      line-height:1.2;
+      text-align:center;
+      color:#ddd;
+      margin-bottom:clamp(10px,1vw,18px)
+    }
+
+    .input-row{
+      display:flex;
+      justify-content:center
+    }
+
+    .code{
+      width:100%;
+      max-width:clamp(320px,20vw,700px);
+      height:clamp(64px,4.8vw,120px);
+      background:#000;
+      border-radius:clamp(10px,1.2vw,18px);
+      padding:clamp(14px,1.4vw,26px);
+      border:1px solid rgba(255,255,255,0.10);
+      font-family:monospace;
+      font-size:clamp(26px,2.6vw,56px);
+      color:#f0f0f0;
+      text-align:center
+    }
+
+    .btn{
+      padding:clamp(12px,1.2vw,22px) clamp(16px,1.6vw,30px);
+      border-radius:clamp(10px,1.2vw,18px);
+      border:1px solid rgba(255,255,255,0.10);
+      background:transparent;
+      color:inherit;
+      cursor:pointer;
+      font-size:clamp(18px,1.6vw,34px)
+    }
+
+    .status{
+      min-height:clamp(22px,2.2vw,44px);
+      text-align:center;
+      font-size:clamp(16px,1.4vw,28px);
+      color:#bcd
+    }
+
+    .footer{
+      width:100%;
+      display:flex;
+      justify-content:space-between;
+      margin-top:clamp(14px,1.4vw,26px)
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="bg-layer" id="bgLayer"></div>
+<div class="wrap" id="wrap"></div>
+
+<script>
+const pagesData = [
+  {q:'KIRJUTA JUHENDI LAHENDUS SIIA',answer:'JUHEND1'},
+  {q:'LOOMADE KOOD KIRJUTA SIIA',answer:'LOOM123'},
+  {q:'KILEPILDI KOOD KIRJUTA SIIA',answer:'KILE456'},
+  {q:'PETRITASSI KOOD KIRJUTA SIIA',answer:'PETRI789'},
+  {q:'MIKROKIRJA LAHENDUS KIRJUTA SIIA',answer:'MIKROABC'},
+  {q:'PARASIIDI ELURINGI LAHENDUS KIRJUTA SIIA',answer:'ELURING'}
+];
+
+const wrap=document.getElementById('wrap');
+const bgLayer=document.getElementById('bgLayer');
+
+const SPRITE='sprite.png';
+const BIOH='oht.png';
+const SKULL='pealuu.png';
+
+const rand=(a,b)=>Math.random()*(b-a)+a;
+
+function overlap(a,b,m=22){
+  return !(a.x+a.w+m<b.x||b.x+b.w+m<a.x||a.y+a.h+m<b.y||b.y+b.h+m<a.y);
+}
+
+function spawnBackground(n=12){
+  bgLayer.innerHTML='';
+  const placed=[];
+  for(let i=0;i<n;i++){
+    const el=document.createElement('div');
+    el.className='bg-el';
+    const size=rand(60,260);
+    let x=0,y=0;
+    for(let t=0;t<60;t++){
+      x=rand(0,innerWidth-size);
+      y=rand(0,innerHeight-size);
+      if(placed.every(p=>!overlap({x,y,w:size,h:size},p))){
+        placed.push({x,y,w:size,h:size});
+        break;
+      }
+    }
+    el.style.width=size+'px';
+    el.style.left=x+'px';
+    el.style.top=y+'px';
+    el.style.animation=`float-${['slow','med','fast'][i%3]} ${rand(8,16)}s infinite`;
+    el.style.backgroundImage=`url('${SPRITE}')`;
+    el.style.backgroundSize='400% 400%';
+    el.style.backgroundPosition=`${(i%4)*33}% ${Math.floor(i/4)*33}%`;
+    bgLayer.appendChild(el);
+  }
+}
+
+let current=0;
+
+function render(){
+  wrap.innerHTML='';
+  pagesData.forEach((p,i)=>{
+    const d=document.createElement('div');
+    d.className='page';
+    d.style.display=i===current?'block':'none';
+    d.innerHTML=`
+      <div class="slot">
+        <div class="question">${p.q}</div>
+        <div class="input-row">
+          <input class="code" id="inp${i}">
+        </div>
+        <div class="status" id="st${i}"></div>
+      </div>
+      <div class="footer">
+        <button class="btn" onclick="nav(-1)">Eelmine</button>
+        <button class="btn" onclick="nav(1)">Järgmine</button>
+      </div>`;
+    wrap.appendChild(d);
+  });
+}
+
+window.nav=function(d){
+  const v=document.getElementById('inp'+current).value.trim().toUpperCase();
+  if(d>0&&v!==pagesData[current].answer){
+    document.getElementById('st'+current).textContent='Vale kood';
+    return;
+  }
+  current=Math.max(0,Math.min(pagesData.length-1,current+d));
+  render();
+};
+
+spawnBackground(16);
+render();
+</script>
+
+</body>
+</html>
