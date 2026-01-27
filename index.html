@@ -48,14 +48,28 @@
   <div class="wrap" id="wrap"></div>
 
   <script>
-    // Questions and correct answers
+    // Questions and correct answers (MUUTETUD — ainult siinosa)
     const pagesData = [
-      {q: 'KIRJUTA JUHENDI LAHENDUS SIIA', answer: 'JUHEND1'},
-      {q: 'LOOMADE KOOD KIRJUTA SIIA', answer: 'LOOM123'},
-      {q: 'KILEPILDI KOOD KIRJUTA SIIA', answer: 'KILE456'},
-      {q: 'PETRITASSI KOOD KIRJUTA SIIA', answer: 'PETRI789'},
-      {q: 'MIKROKIRJA LAHENDUS KIRJUTA SIIA', answer: 'MIKROABC'},
-      {q: 'PARASIIDI ELURINGI LAHENDUS KIRJUTA SIIA', answer: 'ELURING'}
+      // 1. lahter: SISESTA ÕIGETE VALITUD LOOMADE SUMMA
+      { 
+        q: 'SISESTA ÕIGETE VALITUD LOOMADE SUMMA', 
+        answer: '22955'
+      },
+
+      // 2. lahter: vastus "paeluss", juures vihje "vaata laua alla" ja lisavihje "kuklaluu"
+      { 
+        q: 'VAATA VIHJET: SISESTA ÕIGE SÕNA', 
+        answer: 'paeluss',
+        hint: 'vaata laua alla — kuklaluu (pisi pisi pisi)'
+      },
+
+      // 3. lahter: tühi küsimus (küsimus nähtamatu), vastus "peremeesorganism"
+      // kui vastus õige, lõppkood/teade: "000 ja kohv"
+      { 
+        q: '',
+        answer: 'peremeesorganism',
+        onCorrect: '000 ja kohv'
+      }
     ];
 
     const wrap = document.getElementById('wrap');
@@ -177,8 +191,23 @@
         const val = sanitize(inp ? inp.value : '');
         const expected = sanitize(pagesData[idx].answer);
         if(!expected){ status.textContent = 'Siia pole salvestatud vastust — administraatori viga.'; status.style.color = '#f99'; return; }
-        if(val === expected){ status.textContent = 'Õige — edasi liigud.'; status.style.color = '#9fd'; setTimeout(()=> show(Math.min(pagesData.length-1, idx+1)), 400); }
-        else { status.textContent = 'Vale kood — proovi uuesti.'; status.style.color = '#f99'; if(inp) inp.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:300}); if(inp) inp.focus(); }
+        if(val === expected){
+          status.textContent = 'Õige — edasi liigud.'; status.style.color = '#9fd';
+          // If there's an onCorrect payload, show it in status briefly
+          if(pagesData[idx].onCorrect){ status.textContent = 'Õige — ' + pagesData[idx].onCorrect; }
+          setTimeout(()=> show(Math.min(pagesData.length-1, idx+1)), 400);
+        }
+        else {
+          // if there is a hint field, show short hint feedback
+          if(pagesData[idx].hint){
+            status.textContent = 'Vale kood — vihje: ' + pagesData[idx].hint;
+          } else {
+            status.textContent = 'Vale kood — proovi uuesti.';
+          }
+          status.style.color = '#f99';
+          if(inp) inp.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:300});
+          if(inp) inp.focus();
+        }
         return;
       }
       const prevBtn = e.target.closest('[data-prev]');
@@ -200,8 +229,20 @@
           const val = sanitize(inp ? inp.value : '');
           const expected = sanitize(pagesData[current].answer);
           const status = document.getElementById('status-'+current);
-          if(val === expected){ status.textContent = 'Õige — edasi liigud.'; status.style.color = '#9fd'; setTimeout(()=> show(Math.min(pagesData.length-1,current+1)), 300); }
-          else { status.textContent = 'Vale kood — proovi uuesti.'; status.style.color = '#f99'; if(inp) inp.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:300}); }
+          if(val === expected){
+            status.textContent = 'Õige — edasi liigud.'; status.style.color = '#9fd';
+            if(pagesData[current].onCorrect){ status.textContent = 'Õige — ' + pagesData[current].onCorrect; }
+            setTimeout(()=> show(Math.min(pagesData.length-1,current+1)), 300);
+          }
+          else {
+            if(pagesData[current].hint){
+              status.textContent = 'Vale kood — vihje: ' + pagesData[current].hint;
+            } else {
+              status.textContent = 'Vale kood — proovi uuesti.';
+            }
+            status.style.color = '#f99';
+            if(inp) inp.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:300});
+          }
         }
       }
     });
