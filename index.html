@@ -1,266 +1,45 @@
-<!doctype html>
-<html lang="et">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-
-  <!-- PWA / fullscreen support -->
-  <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="theme-color" content="#000000" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="icon" href="icons/icon-192.png" />
-
-  <title>Puzzle Pages</title>
-  <style>
-    :root{--bg:#000;--slot:#111;--accent:#0f62fe}
-    html,body{height:100%;margin:0}
-    /* Background layer */
-    .bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-    .bg-el{position:absolute;opacity:0.27;filter:grayscale(100%) contrast(120%) brightness(90%);transform-origin:center center;background-repeat:no-repeat;background-size:contain}
-    .bg-el.color{opacity:1;filter:none}
-    @keyframes float-slow{0%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-18px) rotate(12deg)}100%{transform:translateY(0) rotate(0deg)}}
-    @keyframes float-med{0%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-12px) rotate(-8deg)}100%{transform:translateY(0) rotate(0deg)}}
-    @keyframes float-fast{0%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-6px) rotate(6deg)}100%{transform:translateY(0) rotate(0deg)}}
-    /* body + layout */
-    body{background:var(--bg);color:#e6e6e6;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;display:flex;align-items:center;justify-content:center;
-      padding:calc(20px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
-      box-sizing:border-box;position:relative;min-height:100vh;min-height:100dvh}
-    .wrap{width:980px;max-width:100%;display:flex;gap:18px;flex-wrap:wrap;justify-content:center;position:relative;z-index:2}
-    .page{width:320px;background:linear-gradient(180deg,#070707,#0b0b0b);border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,0.04);box-sizing:border-box}
-    .slot{width:100%;height:140px;position:relative;border-radius:8px;background:linear-gradient(180deg,#0b0b0b,#050505);box-shadow:0 8px 30px rgba(0,0,0,0.6);padding:10px;box-sizing:border-box}
-    .question{font-size:14px;text-align:center;color:#ddd;margin-bottom:8px}
-    .input-row{display:flex;gap:8px;align-items:center;justify-content:center}
-    .code{flex:1;max-width:200px;height:40px;background:#000;border-radius:6px;padding:8px 10px;box-sizing:border-box;border:1px solid rgba(255,255,255,0.08);font-family:monospace;font-size:15px;color:#cfcfcf;text-align:center}
-    .btn{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;cursor:pointer}
-    .status{height:20px;text-align:center;font-size:13px;color:#bcd}
-    .footer{width:100%;display:flex;justify-content:space-between;margin-top:10px}
-    @media (max-width:980px){.wrap{flex-direction:column;align-items:center}.page{width:92%}}
-    .bio-sign rect{fill:#111;stroke:#fff;stroke-opacity:0.2}
-    .bio-sign text{font-family:Inter,system-ui,Arial,sans-serif;font-size:12px;fill:#fff;letter-spacing:0.6px}
-  </style>
-</head>
-<body>
-  <div class="bg-layer" id="bgLayer" aria-hidden="true"></div>
-
-  <div class="wrap" id="wrap"></div>
-
-  <script>
-    // Questions and correct answers (MUUTETUD — ainult siinosa)
-    const pagesData = [
-      // 1. lahter: SISESTA ÕIGETE VALITUD LOOMADE SUMMA
-      { 
-        q: 'SISESTA ÕIGETE TEGIJATE SUMMA ÕIGED TEGOJAD LEIAD KLASSIST 3ST KOHAST, LOE HOOLEGA JUHENDIT JA ÜHENDA NEED KILEGA SIIS LEIAD LOOMAD', 
-        answer: '22955'
-      },
-
-      // 2. lahter: vastus "paeluss", juures vihje "vaata laua alla" ja lisavihje "kuklaluu"
-      { 
-        q: 'VAATA VIHJET: SISESTA ÕIGE SÕNA: ÕIGE SÕNA ON LAUA ALL, TÄHED ON LAIALI IGAL POOL _ _ _ _ _ _ _', 
-        answer: 'paeluss',
-        hint: 'vaata kõikide laudade alla, pane kokku tähtedest, mis on sõnarägastikus, ühe parasiidi nimi'
-      },
-
-      // 3. lahter: tühi küsimus (küsimus nähtamatu), vastus "peremeesorganism"
-      // kui vastus õige, lõppkood/teade: "000 ja kohv"
-      { 
-        q: 'kuklaluu',
-        answer: 'peremeesorganism',
-        hint: 'koht kus parasiidil on hea soe pikutada'
-        onCorrect: 'pöidlaluu ja käsigranaat'
-      }
-    ];
-
+<script>
+  // DEBUG PATCH — temporary. Paste at top of your <script> while debugging.
+  // 1) Disable background spawn and animations
+  document.addEventListener('DOMContentLoaded', () => {
+    // Force wrap to be visible even if some CSS/JS misbehaves
     const wrap = document.getElementById('wrap');
-    const bgLayer = document.getElementById('bgLayer');
-
-    // Use the new individual image files (put these in same folder as this HTML)
-    const ICONS = [
-      'icon_3.png',
-      'icon_4.png',
-      'icon_5.png',
-      'icon_16.png',
-      'icon_17.png',
-      'icon_18.png',
-      'icon_21.png',
-      'icon_22.png',
-      'icon_49.png',
-      'icon_50.png'
-    ];
-
-    // Optional color signs (if you have oht.png & pealuu.png in same folder)
-    const BIOH = 'oht.png';     // color biohazard (optional)
-    const SKULL = 'pealuu.png'; // color skull (optional)
-
-    function rand(min,max){ return Math.random()*(max-min)+min }
-
-    function spawnBackground(count=20){
-      bgLayer.innerHTML = '';
-      // more weight for icons
-      const types = ['icon','icon','icon','icon','icon','biosign','biohazardColor','skullColor'];
-      for(let i=0;i<count;i++){
-        const t = types[Math.floor(Math.random()*types.length)];
-        const wrapper = document.createElement('div');
-        wrapper.className = 'bg-el' + ((t==='biohazardColor' || t==='skullColor') ? ' color' : '');
-        const size = Math.round(rand(50,220));
-        const left = Math.round(rand(-10,110));
-        const top = Math.round(rand(-10,110));
-        wrapper.style.width = size + 'px';
-        wrapper.style.height = 'auto';
-        wrapper.style.left = left + '%';
-        wrapper.style.top = top + '%';
-        const anim = (i%3===0)?'float-slow':(i%3===1)?'float-med':'float-fast';
-        wrapper.style.animation = `${anim} ${rand(6,18).toFixed(1)}s ease-in-out ${rand(0,4).toFixed(2)}s infinite`;
-        wrapper.style.transform = `rotate(${Math.round(rand(-35,35))}deg)`;
-
-        if(t === 'icon'){
-          const icon = ICONS[Math.floor(Math.random()*ICONS.length)];
-          // icons are line art on black; keep them grayscale & subtle
-          wrapper.innerHTML = `<img src="${icon}" alt="icon" style="width:100%;height:auto;display:block;filter:grayscale(100%);"/>`;
-        } else if(t === 'biosign'){
-          wrapper.innerHTML = `
-            <svg viewBox="0 0 160 80" xmlns="http://www.w3.org/2000/svg" class="bio-sign">
-              <rect x="2" y="2" width="156" height="76" rx="8" ry="8" stroke="#fff" stroke-opacity="0.12" fill="#111"/>
-              <g fill="#fff" font-family="Inter, system-ui, Arial" font-weight="600">
-                <text x="50%" y="36" dominant-baseline="middle" text-anchor="middle" font-size="18">BIOOHT</text>
-                <text x="50%" y="56" dominant-baseline="middle" text-anchor="middle" font-size="10">SAASTUNUD LABOR</text>
-              </g>
-            </svg>
-          `;
-          wrapper.style.opacity = 0.18;
-          wrapper.style.width = Math.round(rand(100,260))+'px';
-        } else if(t === 'biohazardColor'){
-          // only show if file exists locally — if missing you'll get broken icon
-          wrapper.innerHTML = `<img src="${BIOH}" alt="Biohazard" style="width:100%;height:auto;display:block"/>`;
-        } else if(t === 'skullColor'){
-          wrapper.innerHTML = `<img src="${SKULL}" alt="Skull" style="width:100%;height:auto;display:block"/>`;
-        }
-
-        bgLayer.appendChild(wrapper);
-      }
+    if(wrap){
+      wrap.style.zIndex = 9999;
+      wrap.style.background = '#111';
+      wrap.style.padding = '18px';
+      wrap.style.border = '2px solid #444';
     }
 
-    // render pages
-    function createPage(p,i){
-      const el = document.createElement('div');
-      el.className = 'page';
-      el.dataset.index = i;
-      el.innerHTML = `
-        <div class="slot" aria-hidden="false">
-          <div class="question">${escapeHtml(p.q)}</div>
-          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%">
-            <div class="input-row">
-              <input class="code" id="input-${i}" type="text" maxlength="20" placeholder="Kirjuta vastus siia" aria-label="Vastus ${i+1}" />
-            </div>
-            <div class="status" id="status-${i}"></div>
-          </div>
-        </div>
-        <div class="footer">
-          <button class="btn" data-prev data-index="${i}">Eelmine</button>
-          <div style="width:12px"></div>
-          <button class="btn" data-next data-index="${i}">Järgmine</button>
-        </div>
-      `;
-      return el;
+    // Show a debug banner so we can see the DOM is alive
+    const debug = document.createElement('div');
+    debug.textContent = 'DEBUG: page loaded — content should appear below';
+    debug.style.width = '100%';
+    debug.style.textAlign = 'center';
+    debug.style.fontSize = '18px';
+    debug.style.padding = '10px';
+    debug.style.background = '#222';
+    debug.style.color = '#fff';
+    debug.style.borderRadius = '8px';
+    debug.style.marginBottom = '12px';
+    wrap.parentNode.insertBefore(debug, wrap);
+
+    // Stop service-worker registration while debugging
+    if ('serviceWorker' in navigator){
+      // do nothing; block registration by preventing the call below
+      console.warn('Service worker registration TEMPORARILY disabled for debugging');
     }
 
-    wrap.innerHTML = '';
-    pagesData.forEach((p,i)=> wrap.appendChild(createPage(p,i)));
-
-    // navigation
-    let current = 0;
-    const pageEls = () => Array.from(document.querySelectorAll('.page'));
-    function show(idx){
-      const pages = pageEls();
-      pages.forEach((pe,i)=>{ pe.style.display = (i===idx) ? 'block' : 'none'; });
-      const inp = document.getElementById('input-'+idx);
-      if(inp) setTimeout(()=> inp.focus(),200);
-      current = idx;
+    // If the pages didn't render, append a plainly visible page
+    if (!wrap.querySelector('.page')) {
+      const p = document.createElement('div');
+      p.className = 'page';
+      p.style.display = 'block';
+      p.innerHTML = '<div style="padding:20px;color:#fff;background:#000;border-radius:8px">Fallback page — if you see this, the DOM is working.</div>';
+      wrap.appendChild(p);
     }
-    show(0);
+  });
 
-    function sanitize(s){ return (s||'').toString().trim().toUpperCase().slice(0,20); }
-
-    wrap.addEventListener('click', (e) => {
-      const nextBtn = e.target.closest('[data-next]');
-      if(nextBtn){
-        const idx = Number(nextBtn.dataset.index);
-        const inp = document.getElementById('input-'+idx);
-        const status = document.getElementById('status-'+idx);
-        const val = sanitize(inp ? inp.value : '');
-        const expected = sanitize(pagesData[idx].answer);
-        if(!expected){ status.textContent = 'Siia pole salvestatud vastust — administraatori viga.'; status.style.color = '#f99'; return; }
-        if(val === expected){
-          status.textContent = 'Õige — edasi liigud.'; status.style.color = '#9fd';
-          // If there's an onCorrect payload, show it in status briefly
-          if(pagesData[idx].onCorrect){ status.textContent = 'Õige — ' + pagesData[idx].onCorrect; }
-          setTimeout(()=> show(Math.min(pagesData.length-1, idx+1)), 400);
-        }
-        else {
-          // if there is a hint field, show short hint feedback
-          if(pagesData[idx].hint){
-            status.textContent = 'Vale kood — vihje: ' + pagesData[idx].hint;
-          } else {
-            status.textContent = 'Vale kood — proovi uuesti.';
-          }
-          status.style.color = '#f99';
-          if(inp) inp.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:300});
-          if(inp) inp.focus();
-        }
-        return;
-      }
-      const prevBtn = e.target.closest('[data-prev]');
-      if(prevBtn){ const idx = Number(prevBtn.dataset.index); show(Math.max(0, idx-1)); return; }
-    });
-
-    window.addEventListener('keydown', (e)=>{
-      if(e.key === 'ArrowRight'){
-        const inp = document.getElementById('input-'+current);
-        const val = sanitize(inp ? inp.value : '');
-        const expected = sanitize(pagesData[current].answer);
-        if(val === expected){ show(Math.min(pagesData.length-1, current+1)); }
-        else { const status = document.getElementById('status-'+current); status.textContent = 'Vale kood — proovi uuesti.'; status.style.color = '#f99'; if(inp) inp.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:300}); if(inp) inp.focus(); }
-      }
-      if(e.key === 'ArrowLeft') show(Math.max(0,current-1));
-      if(e.key === 'Enter'){
-        const inp = document.getElementById('input-'+current);
-        if(document.activeElement === inp){
-          const val = sanitize(inp ? inp.value : '');
-          const expected = sanitize(pagesData[current].answer);
-          const status = document.getElementById('status-'+current);
-          if(val === expected){
-            status.textContent = 'Õige — edasi liigud.'; status.style.color = '#9fd';
-            if(pagesData[current].onCorrect){ status.textContent = 'Õige — ' + pagesData[current].onCorrect; }
-            setTimeout(()=> show(Math.min(pagesData.length-1,current+1)), 300);
-          }
-          else {
-            if(pagesData[current].hint){
-              status.textContent = 'Vale kood — vihje: ' + pagesData[current].hint;
-            } else {
-              status.textContent = 'Vale kood — proovi uuesti.';
-            }
-            status.style.color = '#f99';
-            if(inp) inp.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:300});
-          }
-        }
-      }
-    });
-
-    // spawn background and respawn on resize
-    spawnBackground(20);
-    let _resizeT;
-    window.addEventListener('resize', ()=>{ clearTimeout(_resizeT); _resizeT = setTimeout(()=> spawnBackground(14), 350); });
-
-    function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }
-
-    // PWA: register service worker (offline + more app-like)
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
-      });
-    }
-  </script>
-</body>
-</html>
+  // Also prevent spawnBackground from running (comment it out or override)
+  window.spawnBackground = function() { console.log('spawnBackground suppressed for debug'); };
+</script>
