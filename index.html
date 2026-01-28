@@ -1,45 +1,98 @@
 <script>
-  // DEBUG PATCH — temporary. Paste at top of your <script> while debugging.
-  // 1) Disable background spawn and animations
-  document.addEventListener('DOMContentLoaded', () => {
-    // Force wrap to be visible even if some CSS/JS misbehaves
-    const wrap = document.getElementById('wrap');
-    if(wrap){
-      wrap.style.zIndex = 9999;
-      wrap.style.background = '#111';
-      wrap.style.padding = '18px';
-      wrap.style.border = '2px solid #444';
-    }
+  // Minimal safe runtime (no background images, no service worker)
+  const pagesData = [
+    { q: 'SISESTA ÕIGETE TEGIJATE SUMMA ...', answer: '22955' },
+    { q: 'VAATA VIHJET: ...', answer: 'paeluss', hint: 'vaata kõikide laudade alla...' },
+    { q: 'kuklaluu', answer: 'peremeesorganism', hint: 'koht kus parasiidil on hea soe pikutada', onCorrect: 'pöidlaluu ja käsigranaat' }
+  ];
 
-    // Show a debug banner so we can see the DOM is alive
-    const debug = document.createElement('div');
-    debug.textContent = 'DEBUG: page loaded — content should appear below';
-    debug.style.width = '100%';
-    debug.style.textAlign = 'center';
-    debug.style.fontSize = '18px';
-    debug.style.padding = '10px';
-    debug.style.background = '#222';
-    debug.style.color = '#fff';
-    debug.style.borderRadius = '8px';
-    debug.style.marginBottom = '12px';
-    wrap.parentNode.insertBefore(debug, wrap);
+  const wrap = document.getElementById('wrap');
+  function createPage(p,i){
+    const el = document.createElement('div');
+    el.className = 'page';
+    el.dataset.index = i;
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div class="slot" aria-hidden="false">
+        <div class="question">${p.q}</div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%">
+          <div class="input-row">
+            <input class="code" id="input-${i}" type="text" maxlength="40" placeholder="Kirjuta vastus siia" />
+          </div>
+          <div class="status" id="status-${i}"></div>
+        </div>
+      </div>
+      <div class="footer">
+        <button class="btn" data-prev data-index="${i}">Eelmine</button>
+        <div style="width:12px"></div>
+        <button class="btn" data-next data-index="${i}">Järgmine</button>
+      </div>
+    `;
+    return el;
+  }
 
-    // Stop service-worker registration while debugging
-    if ('serviceWorker' in navigator){
-      // do nothing; block registration by preventing the call below
-      console.warn('Service worker registration TEMPORARILY disabled for debugging');
-    }
+  wrap.innerHTML = '';
+  pagesData.forEach((p,i)=> wrap.appendChild(createPage(p,i)));
+  let current = 0;
+  function show(idx){
+    Array.from(document.querySelectorAll('.page')).forEach((pe,i)=> pe.style.display = (i===idx)?'block':'none');
+    const inp = document.getElementById('input-'+idx);
+    if(inp) inp.focus();
+    current = idx;
+  }
+  show(0);
 
-    // If the pages didn't render, append a plainly visible page
-    if (!wrap.querySelector('.page')) {
-      const p = document.createElement('div');
-      p.className = 'page';
-      p.style.display = 'block';
-      p.innerHTML = '<div style="padding:20px;color:#fff;background:#000;border-radius:8px">Fallback page — if you see this, the DOM is working.</div>';
-      wrap.appendChild(p);
+  function sanitize(s){ return (s||'').toString().trim().toUpperCase().slice(0,40); }
+
+  wrap.addEventListener('click', (e) => {
+    const nextBtn = e.target.closest('[data-next]');
+    if(nextBtn){
+      const idx = Number(nextBtn.dataset.index);
+      const inp = document.getElementById('input-'+idx);
+      const status = document.getElementById('status-'+idx);
+      const val = sanitize(inp ? inp.value : '');
+      const expected = sanitize(pagesData[idx].answer);
+      if(val === expected){
+        status.textContent = 'Õige — edasi liigud.'; status.style.color = '#9fd';
+        if(pagesData[idx].onCorrect){ status.textContent = 'Õige — ' + pagesData[idx].onCorrect; }
+        setTimeout(()=> show(Math.min(pagesData.length-1, idx+1)), 400);
+      } else {
+        status.textContent = pagesData[idx].hint ? ('Vale kood — vihje: ' + pagesData[idx].hint) : 'Vale kood — proovi uuesti.';
+        status.style.color = '#f99';
+        if(inp) inp.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:300});
+        if(inp) inp.focus();
+      }
+      return;
     }
+    const prevBtn = e.target.closest('[data-prev]');
+    if(prevBtn){ const idx = Number(prevBtn.dataset.index); show(Math.max(0, idx-1)); return; }
   });
 
-  // Also prevent spawnBackground from running (comment it out or override)
-  window.spawnBackground = function() { console.log('spawnBackground suppressed for debug'); };
+  window.addEventListener('keydown', (e)=>{
+    if(e.key === 'ArrowRight'){
+      const inp = document.getElementById('input-'+current);
+      const val = sanitize(inp ? inp.value : '');
+      const expected = sanitize(pagesData[current].answer);
+      if(val === expected){ show(Math.min(pagesData.length-1, current+1)); }
+      else { const status = document.getElementById('status-'+current); status.textContent = 'Vale kood — proovi uuesti.'; status.style.color = '#f99'; if(inp) inp.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:300}); if(inp) inp.focus(); }
+    }
+    if(e.key === 'ArrowLeft') show(Math.max(0,current-1));
+    if(e.key === 'Enter'){
+      const inp = document.getElementById('input-'+current);
+      if(document.activeElement === inp){
+        const val = sanitize(inp ? inp.value : '');
+        const expected = sanitize(pagesData[current].answer);
+        const status = document.getElementById('status-'+current);
+        if(val === expected){
+          status.textContent = 'Õige — edasi liigud.'; status.style.color = '#9fd';
+          if(pagesData[current].onCorrect){ status.textContent = 'Õige — ' + pagesData[current].onCorrect; }
+          setTimeout(()=> show(Math.min(pagesData.length-1,current+1)), 300);
+        } else {
+          status.textContent = pagesData[current].hint ? ('Vale kood — vihje: ' + pagesData[current].hint) : 'Vale kood — proovi uuesti.';
+          status.style.color = '#f99';
+          if(inp) inp.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:300});
+        }
+      }
+    }
+  });
 </script>
